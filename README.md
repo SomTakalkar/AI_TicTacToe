@@ -1,3 +1,1 @@
-# sb1-d6echbeg
-
-[Edit in StackBlitz next generation editor ⚡️](https://stackblitz.com/~/github.com/SomTakalkar/sb1-d6echbeg)
+Game with AI integration using Minimax algorithm and vite, TypeScript enabling real-time gameplay via a Node.js and Socket.IO backend 
