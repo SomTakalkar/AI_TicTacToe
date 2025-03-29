@@ -4,7 +4,8 @@ import Board from './components/Board';
 import { checkWinner, findBestMove, countThreeInARow } from './utils/ai';
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:3000');
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+const socket = io(SOCKET_URL);
 
 type Player = 'X' | 'O';
 type GameMode = 'Friend' | 'AI' | null;
