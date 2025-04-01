@@ -7,18 +7,17 @@ const WIN_CONDITIONS_3X3 = [
   [0, 4, 8], [2, 4, 6]             // Diagonals
 ];
 
-export const checkWinner = (board: Board): Player | null => {
+export const checkWinner = (board: Board): { winner: Player | null; line: number[] } => {
   for (const [a, b, c] of WIN_CONDITIONS_3X3) {
     if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-      return board[a];
+      return { winner: board[a], line: [a, b, c] };
     }
   }
-  return null;
+  return { winner: null, line: [] };
 };
 
-export const countThreeInARow = (board: Board) => {
-  let playerX = 0;
-  let playerO = 0;
+export const findWinningLines5x5 = (board: Board): number[][] => {
+  const winningLines: number[][] = [];
 
   // Check rows
   for (let i = 0; i < 5; i++) {
@@ -29,8 +28,7 @@ export const countThreeInARow = (board: Board) => {
         board[start] === board[start + 1] &&
         board[start] === board[start + 2]
       ) {
-        if (board[start] === 'X') playerX++;
-        if (board[start] === 'O') playerO++;
+        winningLines.push([start, start + 1, start + 2]);
       }
     }
   }
@@ -44,8 +42,7 @@ export const countThreeInARow = (board: Board) => {
         board[start] === board[start + 5] &&
         board[start] === board[start + 10]
       ) {
-        if (board[start] === 'X') playerX++;
-        if (board[start] === 'O') playerO++;
+        winningLines.push([start, start + 5, start + 10]);
       }
     }
   }
@@ -60,8 +57,7 @@ export const countThreeInARow = (board: Board) => {
         board[start] === board[start + 6] &&
         board[start] === board[start + 12]
       ) {
-        if (board[start] === 'X') playerX++;
-        if (board[start] === 'O') playerO++;
+        winningLines.push([start, start + 6, start + 12]);
       }
       // Check diagonal left
       if (
@@ -69,27 +65,37 @@ export const countThreeInARow = (board: Board) => {
         board[start + 2] === board[start + 6] &&
         board[start + 2] === board[start + 10]
       ) {
-        if (board[start + 2] === 'X') playerX++;
-        if (board[start + 2] === 'O') playerO++;
+        winningLines.push([start + 2, start + 6, start + 10]);
       }
     }
   }
 
-  return { playerX, playerO };
+  return winningLines;
+};
+
+export const countThreeInARow = (board: Board) => {
+  const winningLines = findWinningLines5x5(board);
+  let playerX = 0;
+  let playerO = 0;
+
+  for (const line of winningLines) {
+    if (board[line[0]] === 'X') playerX++;
+    if (board[line[0]] === 'O') playerO++;
+  }
+
+  return { playerX, playerO, winningLines };
 };
 
 const isDraw = (board: Board): boolean => {
   return board.every(cell => cell !== null);
 };
 
-// Evaluate board state for 5x5 grid
 const evaluateBoard = (board: Board, player: Player): number => {
   const { playerX, playerO } = countThreeInARow(board);
   const score = player === 'X' ? playerX - playerO : playerO - playerX;
   return score * 10;
 };
 
-// Check for two-in-a-row with an empty cell
 const findTwoInARow = (board: Board, player: Player): number => {
   // Check rows
   for (let i = 0; i < 5; i++) {
@@ -133,7 +139,7 @@ const minimax = (
   } else {
     // 3x3 grid logic
     const opponent: Player = player === 'O' ? 'X' : 'O';
-    const winner = checkWinner(board);
+    const winner = checkWinner(board).winner;
     if (winner === player) return 10 - depth;
     if (winner === opponent) return depth - 10;
     if (isDraw(board)) return 0;
