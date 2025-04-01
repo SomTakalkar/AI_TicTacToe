@@ -17,7 +17,8 @@ const Cell: React.FC<CellProps> = ({ value, onClick, isWinning, size }) => {
         ${isWinning ? 'bg-green-200 border-green-400' : 'bg-white'}
         ${value === 'X' ? 'text-blue-600' : 'text-red-600'}
         ${size === 'large' ? 'text-4xl' : 'text-2xl'}
-        font-bold transition-all duration-200
+        font-bold transition-all duration-200 relative
+        ${isWinning ? 'after:content-[""] after:absolute after:inset-0 after:bg-green-400/20 after:animate-pulse' : ''}
       `}
       onClick={onClick}
       disabled={!!value}
