@@ -4,11 +4,11 @@ import Cell from './Cell';
 interface BoardProps {
   board: (string | null)[];
   onCellClick: (index: number) => void;
-  winningLine: number[];
+  winningLines: number[][];
   gridSize: '3x3' | '5x5';
 }
 
-const Board: React.FC<BoardProps> = ({ board, onCellClick, winningLine, gridSize }) => {
+const Board: React.FC<BoardProps> = ({ board, onCellClick, winningLines, gridSize }) => {
   return (
     <div 
       className={`grid gap-2 w-fit ${
@@ -20,7 +20,7 @@ const Board: React.FC<BoardProps> = ({ board, onCellClick, winningLine, gridSize
           key={index}
           value={value}
           onClick={() => onCellClick(index)}
-          isWinning={winningLine.includes(index)}
+          isWinning={winningLines.some(line => line.includes(index))}
           size={gridSize === '3x3' ? 'large' : 'small'}
         />
       ))}
