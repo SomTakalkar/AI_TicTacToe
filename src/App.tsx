@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Gamepad2, Bot, RotateCcw, ArrowLeft, Grid3x3, Grid, Info } from 'lucide-react';
 import Board from './components/Board';
-import { checkWinner, findBestMove, countThreeInARow } from './utils/ai';
+import { checkWinner, findBestMove, countThreeInARow, findWinningLines5x5 } from './utils/ai';
 import io from 'socket.io-client';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
@@ -18,7 +18,7 @@ const App: React.FC = () => {
   const [board, setBoard] = useState<(string | null)[]>(initialBoardState);
   const [currentPlayer, setCurrentPlayer] = useState<Player>('X');
   const [gameStatus, setGameStatus] = useState<string>('');
-  const [winningLine, setWinningLine] = useState<number[]>([]);
+  const [winningLines, setWinningLines] = useState<number[][]>([]);
   const [mode, setMode] = useState<GameMode>(null);
   const [isThinking, setIsThinking] = useState(false);
   const [scores, setScores] = useState({ X: 0, O: 0 });
@@ -29,23 +29,30 @@ const App: React.FC = () => {
       setBoard(data.board);
       setCurrentPlayer(data.currentPlayer);
       setScores(data.scores);
+      if (gridSize === '5x5') {
+        setWinningLines(findWinningLines5x5(data.board));
+      }
     });
 
     return () => {
       socket.off('updateGame');
     };
-  }, []);
+  }, [gridSize]);
 
   const checkGameWinner = (boardState: (string | null)[]): void => {
     if (gridSize === '3x3') {
-      const winner = checkWinner(boardState);
+      const { winner, line } = checkWinner(boardState);
       if (winner) {
+        setWinningLines([line]);
         setGameStatus(`${winner} Wins!`);
         setScores(prev => ({ ...prev, [winner]: prev[winner as keyof typeof prev] + 1 }));
         return;
       }
+      setWinningLines([]);
     } else {
-      const { playerX, playerO } = countThreeInARow(boardState);
+      const { playerX, playerO, winningLines } = countThreeInARow(boardState);
+      setWinningLines(winningLines);
+      
       if (!boardState.includes(null) || boardState.filter(cell => cell === null).length === 1) {
         const winner = playerX > playerO ? 'X' : playerO > playerX ? 'O' : 'Draw';
         setGameStatus(winner === 'Draw' ? "It's a Draw!" : `${winner} Wins! (${playerX}-${playerO})`);
@@ -58,6 +65,7 @@ const App: React.FC = () => {
 
     if (!boardState.includes(null)) {
       setGameStatus("It's a Draw!");
+      setWinningLines([]);
     }
   };
 
@@ -100,7 +108,7 @@ const App: React.FC = () => {
     setBoard(Array(gridSize === '3x3' ? 9 : 25).fill(null));
     setCurrentPlayer('X');
     setGameStatus('');
-    setWinningLine([]);
+    setWinningLines([]);
     setIsThinking(false);
   };
 
@@ -220,7 +228,7 @@ const App: React.FC = () => {
               <Board
                 board={board}
                 onCellClick={handleCellClick}
-                winningLine={winningLine}
+                winningLines={winningLines}
                 gridSize={gridSize}
               />
               {isThinking && (
