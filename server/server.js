@@ -19,9 +19,22 @@ const games = new Map();
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
+  socket.on('joinRoom', (roomId) => {
+    socket.join(roomId);
+    console.log(`User ${socket.id} joined room ${roomId}`);
+    // Optional: Notify others in room
+    // socket.to(roomId).emit('playerJoined', socket.id);
+  });
+
   socket.on('playerMove', (data) => {
-    // Broadcast the move to all other clients
-    socket.broadcast.emit('updateGame', data);
+    const { roomId, ...moveData } = data;
+    // Broadcast the move to other clients in the specific room
+    socket.to(roomId).emit('updateGame', moveData);
+  });
+
+  socket.on('resetGame', (data) => {
+      const { roomId } = data;
+      io.to(roomId).emit('gameReset');
   });
 
   socket.on('disconnect', () => {
