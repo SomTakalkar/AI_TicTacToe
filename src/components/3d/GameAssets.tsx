@@ -16,14 +16,29 @@ export const Cross = ({ position }: { position: [number, number, number] }) => {
 
     return (
         <group position={position} ref={groupRef as any}>
+            {/* Metallic Base with Red Neon Core */}
             <mesh rotation={[0, 0, Math.PI / 4]} castShadow receiveShadow>
                 <boxGeometry args={[0.2, 1.2, 0.2]} />
-                <meshStandardMaterial color="#3b82f6" metalness={0.5} roughness={0.2} />
+                <meshStandardMaterial
+                    color="#444"
+                    metalness={0.9}
+                    roughness={0.1}
+                    emissive="#ff003c"
+                    emissiveIntensity={2}
+                />
             </mesh>
             <mesh rotation={[0, 0, -Math.PI / 4]} castShadow receiveShadow>
                 <boxGeometry args={[0.2, 1.2, 0.2]} />
-                <meshStandardMaterial color="#3b82f6" metalness={0.5} roughness={0.2} />
+                <meshStandardMaterial
+                    color="#444"
+                    metalness={0.9}
+                    roughness={0.1}
+                    emissive="#ff003c"
+                    emissiveIntensity={2}
+                />
             </mesh>
+            {/* Inner light glow simulation board */}
+            <pointLight position={[0, 0, 0]} intensity={2} distance={3} color="#ff003c" />
         </group>
     );
 };
@@ -39,40 +54,72 @@ export const Circle = ({ position }: { position: [number, number, number] }) => 
     });
 
     return (
-        <mesh position={position} rotation={[Math.PI / 2, 0, 0]} ref={meshRef} castShadow receiveShadow>
-            <torusGeometry args={[0.4, 0.1, 16, 32]} />
-            <meshStandardMaterial color="#ef4444" metalness={0.5} roughness={0.2} />
-        </mesh>
+        <group position={position}>
+            <mesh rotation={[Math.PI / 2, 0, 0]} ref={meshRef} castShadow receiveShadow>
+                <torusGeometry args={[0.4, 0.08, 16, 32]} />
+                <meshStandardMaterial
+                    color="#444"
+                    metalness={0.9}
+                    roughness={0.1}
+                    emissive="#00f3ff"
+                    emissiveIntensity={2}
+                />
+            </mesh>
+            <pointLight position={[0, 0, 0]} intensity={2} distance={3} color="#00f3ff" />
+        </group>
     );
 };
 
 export const GridLines = ({ gridSize }: { gridSize: '3x3' | '5x5' }) => {
     const size = gridSize === '3x3' ? 1.5 : 2.5;
     const lines = [];
-    const color = "#9ca3af";
-    const thickness = 0.05;
+    // Neon Blue
+    const color = "#00f3ff";
+    const thickness = 0.03; // Slightly thicker for better visibility
 
-    // Vertical Lines
+    // Vertical Lines (Running along Z-axis at different X positions)
     for (let i = 1; i < (gridSize === '3x3' ? 3 : 5); i++) {
         const x = -size + i * (size * 2 / (gridSize === '3x3' ? 3 : 5));
         lines.push(
-            <mesh key={`v-${i}`} position={[x, 0, 0]} castShadow receiveShadow>
-                <boxGeometry args={[thickness, 0.1, size * 2]} />
-                <meshStandardMaterial color={color} />
+            <mesh key={`v-${i}`} position={[x, 0, 0]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
+                <cylinderGeometry args={[thickness, thickness, size * 2, 16]} />
+                <meshStandardMaterial
+                    color={color}
+                    emissive={color}
+                    emissiveIntensity={5}
+                    toneMapped={false}
+                />
             </mesh>
         );
     }
 
-    // Horizontal Lines
+    // Horizontal Lines (Running along X-axis at different Z positions)
     for (let i = 1; i < (gridSize === '3x3' ? 3 : 5); i++) {
         const z = -size + i * (size * 2 / (gridSize === '3x3' ? 3 : 5));
         lines.push(
-            <mesh key={`h-${i}`} position={[0, 0, z]} castShadow receiveShadow>
-                <boxGeometry args={[size * 2, 0.1, thickness]} />
-                <meshStandardMaterial color={color} />
+            <mesh key={`h-${i}`} position={[0, 0, z]} rotation={[0, 0, Math.PI / 2]} receiveShadow>
+                <cylinderGeometry args={[thickness, thickness, size * 2, 16]} />
+                <meshStandardMaterial
+                    color={color}
+                    emissive={color}
+                    emissiveIntensity={5}
+                    toneMapped={false}
+                />
             </mesh>
         );
     }
+
+    // Outer Frame
+    const frameThickness = 0.05;
+    // Top (at Z = -size, along X)
+    lines.push(<mesh key="t" position={[0, 0, -size]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[frameThickness, frameThickness, size * 2, 16]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={3} /></mesh>);
+    // Bottom (at Z = size, along X)
+    lines.push(<mesh key="b" position={[0, 0, size]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[frameThickness, frameThickness, size * 2, 16]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={3} /></mesh>);
+    // Left (at X = -size, along Z)
+    lines.push(<mesh key="l" position={[-size, 0, 0]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[frameThickness, frameThickness, size * 2, 16]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={3} /></mesh>);
+    // Right (at X = size, along Z)
+    lines.push(<mesh key="r" position={[size, 0, 0]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[frameThickness, frameThickness, size * 2, 16]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={3} /></mesh>);
+
 
     return <group>{lines}</group>;
 };
