@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, RotateCcw, ArrowLeft, Info, Lock, Unlock } from 'lucide-react';
+import { Bot, RotateCcw, ArrowLeft, Info, Lock, Unlock, Brain, Zap } from 'lucide-react';
 import ThreeBoard from './components/3d/ThreeBoard';
 import { useGameLogic, GameMode } from './hooks/useGameLogic';
 
@@ -7,6 +7,7 @@ const App: React.FC = () => {
   const [mode, setMode] = useState<GameMode>(null);
   const [showRules, setShowRules] = useState(false);
   const [rotationEnabled, setRotationEnabled] = useState(true);
+  const [difficulty, setDifficulty] = useState<'EASY' | 'HARD'>('EASY');
 
   const {
     board,
@@ -19,7 +20,7 @@ const App: React.FC = () => {
     handleAIMove,
     resetGame,
     resetScores
-  } = useGameLogic(mode);
+  } = useGameLogic(mode, difficulty);
 
   const handleCellClick = async (index: number) => {
     const result = await makeMove(index);
@@ -65,6 +66,18 @@ const App: React.FC = () => {
                   {isThinking ? "AI THINKING..." : (gameStatus || `${currentPlayer === 'X' ? 'YOUR' : "AI"} TURN`)}
                 </div>
               </div>
+
+              {/* Difficulty Indicator/Toggle */}
+              <button
+                onClick={() => setDifficulty(prev => prev === 'EASY' ? 'HARD' : 'EASY')}
+                className={`px-4 py-2 rounded-full border flex items-center gap-2 font-orbitron text-xs tracking-widest transition-all ${difficulty === 'HARD'
+                    ? 'bg-neon-red/10 border-neon-red text-neon-red shadow-[0_0_15px_rgba(255,0,60,0.3)]'
+                    : 'bg-neon-green/10 border-neon-green text-neon-green shadow-[0_0_15px_rgba(10,255,0,0.2)]'
+                  }`}
+              >
+                {difficulty === 'HARD' ? <Brain size={14} /> : <Zap size={14} />}
+                {difficulty === 'HARD' ? 'AI: HARD' : 'AI: EASY'}
+              </button>
             </div>
 
             <button

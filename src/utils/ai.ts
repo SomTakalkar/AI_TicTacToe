@@ -129,7 +129,10 @@ const minimax = (
   isMaximizing: boolean,
   alpha: number,
   beta: number,
-  player: Player
+  player: Player,
+  difficulty: 'EASY' | 'HARD',
+  xMoves: number[],
+  oMoves: number[]
 ): number => {
   // Early termination for 5x5 grid
   if (board.length === 25) {
@@ -139,19 +142,52 @@ const minimax = (
   } else {
     // 3x3 grid logic
     const opponent: Player = player === 'O' ? 'X' : 'O';
+    // Check winner only works if there are 3 in a row.
+    // In infinite mode, a "win" is a win, but we must ensure the move that caused it didn't remove the winning piece?
+    // Actually, checkWinner checks the CURRENT board state. If a piece was removed, it's already gone from 'board'.
     const winner = checkWinner(board).winner;
     if (winner === player) return 10 - depth;
     if (winner === opponent) return depth - 10;
-    if (isDraw(board)) return 0;
+    // In infinite mode, draws are rare/impossible if played perfectly, but we need a depth limit or cycle detection.
+    // For now, we rely on maxDepth.
+    if (depth >= maxDepth) return 0;
   }
 
   if (isMaximizing) {
     let maxEval = -Infinity;
+
+    // Optimisation: If HARD mode and infinite, we only look at relevant moves? 
+    // Actually, just standard minimax is fine for 3x3.
+
     for (let i = 0; i < board.length; i++) {
       if (board[i] === null) {
+        // Simulate Move
+        const nextXMoves = [...xMoves];
+        const nextOMoves = [...oMoves];
+        let removedIndex = -1;
+
+        if (player === 'X') {
+          nextXMoves.push(i);
+          if (difficulty === 'HARD' && nextXMoves.length > 3) {
+            removedIndex = nextXMoves.shift()!;
+          }
+        } else {
+          nextOMoves.push(i);
+          if (difficulty === 'HARD' && nextOMoves.length > 3) {
+            removedIndex = nextOMoves.shift()!;
+          }
+        }
+
+        // Apply changes to board
         board[i] = player;
-        const evaluation = minimax(board, depth + 1, maxDepth, false, alpha, beta, player);
+        if (removedIndex !== -1) board[removedIndex] = null;
+
+        const evaluation = minimax(board, depth + 1, maxDepth, false, alpha, beta, player, difficulty, nextXMoves, nextOMoves);
+
+        // Backtrack
         board[i] = null;
+        if (removedIndex !== -1) board[removedIndex] = player; // Restore the removed piece
+
         maxEval = Math.max(maxEval, evaluation);
         alpha = Math.max(alpha, evaluation);
         if (beta <= alpha) break;
@@ -160,11 +196,37 @@ const minimax = (
     return maxEval;
   } else {
     let minEval = Infinity;
+    const opponent = player === 'X' ? 'O' : 'X';
+
     for (let i = 0; i < board.length; i++) {
       if (board[i] === null) {
-        board[i] = player === 'X' ? 'O' : 'X';
-        const evaluation = minimax(board, depth + 1, maxDepth, true, alpha, beta, player);
+        // Simulate Move
+        const nextXMoves = [...xMoves];
+        const nextOMoves = [...oMoves];
+        let removedIndex = -1;
+
+        if (opponent === 'X') {
+          nextXMoves.push(i);
+          if (difficulty === 'HARD' && nextXMoves.length > 3) {
+            removedIndex = nextXMoves.shift()!;
+          }
+        } else {
+          nextOMoves.push(i);
+          if (difficulty === 'HARD' && nextOMoves.length > 3) {
+            removedIndex = nextOMoves.shift()!;
+          }
+        }
+
+        // Apply changes to board
+        board[i] = opponent;
+        if (removedIndex !== -1) board[removedIndex] = null;
+
+        const evaluation = minimax(board, depth + 1, maxDepth, true, alpha, beta, player, difficulty, nextXMoves, nextOMoves);
+
+        // Backtrack
         board[i] = null;
+        if (removedIndex !== -1) board[removedIndex] = opponent; // Restore the removed piece
+
         minEval = Math.min(minEval, evaluation);
         beta = Math.min(beta, evaluation);
         if (beta <= alpha) break;
@@ -174,7 +236,13 @@ const minimax = (
   }
 };
 
-export const findBestMove = (board: Board, player: Player): number => {
+export const findBestMove = (
+  board: Board,
+  player: Player,
+  difficulty: 'EASY' | 'HARD' = 'EASY',
+  xMoves: number[] = [],
+  oMoves: number[] = []
+): number => {
   // If board is empty, choose a strategic position
   if (board.every(cell => cell === null)) {
     if (board.length === 25) {
@@ -189,23 +257,55 @@ export const findBestMove = (board: Board, player: Player): number => {
   }
 
   // Check for immediate winning moves or blocking opponent's winning moves
-  const twoInARow = findTwoInARow(board, player);
-  if (twoInARow !== -1) return twoInARow;
+  // In HARD mode, we must be careful: does passing 'findTwoInARow' check explicitly for wins?
+  // If we just use simple block check, we might block a win that would have disappeared anyway, 
+  // or miss a win that disappears. 
+  // For simplicity, we let Minimax handle everything in HARD mode for 3x3.
 
-  const opponent = player === 'X' ? 'O' : 'X';
-  const blockMove = findTwoInARow(board, opponent);
-  if (blockMove !== -1) return blockMove;
+  if (difficulty === 'EASY') {
+    const twoInARow = findTwoInARow(board, player);
+    if (twoInARow !== -1) return twoInARow;
 
-  // Use minimax with depth limit for 5x5 grid
-  const maxDepth = board.length === 25 ? 3 : 6;
+    const opponent = player === 'X' ? 'O' : 'X';
+    const blockMove = findTwoInARow(board, opponent);
+    if (blockMove !== -1) return blockMove;
+  }
+
+  // Use minimax logic
+  // For Infinite Logic (HARD), we need greater depth to see the cycle.
+  const maxDepth = (difficulty === 'HARD' && board.length === 9) ? 8 : (board.length === 25 ? 3 : 6);
+
   let bestScore = -Infinity;
   let bestMove = -1;
 
   for (let i = 0; i < board.length; i++) {
     if (board[i] === null) {
+
+      // Simulate the move on the top level
+      const nextXMoves = [...xMoves];
+      const nextOMoves = [...oMoves];
+      let removedIndex = -1;
+
+      if (player === 'X') {
+        nextXMoves.push(i);
+        if (difficulty === 'HARD' && nextXMoves.length > 3) {
+          removedIndex = nextXMoves.shift()!;
+        }
+      } else {
+        nextOMoves.push(i);
+        if (difficulty === 'HARD' && nextOMoves.length > 3) {
+          removedIndex = nextOMoves.shift()!;
+        }
+      }
+
       board[i] = player;
-      const moveScore = minimax(board, 0, maxDepth, false, -Infinity, Infinity, player);
+      if (removedIndex !== -1) board[removedIndex] = null;
+
+      const moveScore = minimax(board, 0, maxDepth, false, -Infinity, Infinity, player, difficulty, nextXMoves, nextOMoves);
+
+      // Backtrack
       board[i] = null;
+      if (removedIndex !== -1) board[removedIndex] = player;
 
       if (moveScore > bestScore) {
         bestScore = moveScore;
